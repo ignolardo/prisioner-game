@@ -98,25 +98,6 @@ func color(s string, c Color) string {
 
 	var color_str string
 
-	/* switch c {
-	case Red:
-		color_str = "\033[31m"
-	case Green:
-		color_str = "\033[32m"
-	case Blue:
-		color_str = "\033[34m"
-	case Yellow:
-		color_str = "\033[33m"
-	case Purple:
-		color_str = "\033[35m"
-	case Cyan:
-		color_str = "\033[36m"
-	case Gray:
-		color_str = "\033[37m"
-	case White:
-		color_str = "\033[97m"
-	} */
-
 	color_str += string(c)
 	color_str += s
 	color_str += "\033[0m"
