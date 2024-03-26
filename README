@@ -8,4 +8,7 @@ In order to run this simulation, you first have to define is what two strategies
 
 Also you have to set the number of rounds you want to simulate
 
-Once you already have defined all the settings, you can run the simulation executing | $ go run main.go | or | $ go run ./main.go |
+Once you already have defined all the settings, you can run the simulation executing:
+```go run main.go``` 
+or 
+```go run ./main.go```
