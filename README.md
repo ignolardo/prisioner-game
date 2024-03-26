@@ -1,14 +1,17 @@
-This is a simulation of the prisioner game or the cooperative game
+This code is a simulation of the prisoner game or cooperative game.
 
-This code has been written in Go
+This code has been written in Go.
 
-You can explore all the posibilities of the game changing strategies or even making yours
+You can explore all the possibilities by changing strategies or even creating your own.
 
-In order to run this simulation, you first have to define is what two strategies you want to use (there are some built-in strategies in the strategies package)
+To run this simulation, you must first define the two strategies you want to use (there are already some built-in strategies in the strategies package)
 
-Also you have to set the number of rounds you want to simulate
+You must also set the number of rounds you want to simulate.
 
-Once you already have defined all the settings, you can run the simulation executing:
+Once you have all the settings defined, you can run the simulation by running:
+
 `go run main.go` 
+
 or 
+
 `go run ./main.go`
