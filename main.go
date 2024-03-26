@@ -7,17 +7,17 @@ import (
 	"strconv"
 )
 
-type Color int
+type Color string
 
 const (
-	Red Color = iota
-	Green
-	Blue
-	Yellow
-	Purple
-	Cyan
-	Gray
-	White
+	Red    Color = "\033[31m"
+	Green  Color = "\033[32m"
+	Blue   Color = "\033[34m"
+	Yellow Color = "\033[33m"
+	Purple Color = "\033[35m"
+	Cyan   Color = "\033[36m"
+	Gray   Color = "\033[37m"
+	White  Color = "\033[97m"
 )
 
 func main() {
@@ -98,7 +98,7 @@ func color(s string, c Color) string {
 
 	var color_str string
 
-	switch c {
+	/* switch c {
 	case Red:
 		color_str = "\033[31m"
 	case Green:
@@ -115,8 +115,9 @@ func color(s string, c Color) string {
 		color_str = "\033[37m"
 	case White:
 		color_str = "\033[97m"
-	}
+	} */
 
+	color_str += string(c)
 	color_str += s
 	color_str += "\033[0m"
 
