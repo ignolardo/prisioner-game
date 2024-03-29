@@ -21,6 +21,12 @@ const (
 	Both
 )
 
+/* type Blocks string
+
+const (
+	Something Blocks = "Hello"
+) */
+
 func (self *Player) Opposite() Player {
 	switch *self {
 	case First:
