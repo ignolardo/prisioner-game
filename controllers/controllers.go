@@ -2,17 +2,13 @@ package controllers
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"prisioner-game/lib"
 	"prisioner-game/strategies"
 
+	"github.com/fixermark/goblockly"
 	"github.com/gofiber/fiber/v2"
-)
-
-type Block string
-
-const (
-	EQUAL Block = "EQUAL"
 )
 
 type RoundBody struct {
@@ -64,25 +60,33 @@ func GetRound(c *fiber.Ctx) error {
 func XML(c *fiber.Ctx) error {
 	//var body XMLStruct
 	//c.BodyParser(&body)
-	/* var blocks goblockly.BlockXml
-	if err := xml.Unmarshal([]byte(c.Query("xml")), &blocks); err != nil {
-		return c.Status(400).SendString("Bad Request")
-	} */
-	fmt.Println(c.Query("xml"))
-	return c.JSON(XMLStruct{Xml: c.Query("xml")})
-
+	var xmlBody XMLStruct
+	if err := c.BodyParser(&xmlBody); err != nil {
+		c.Status(400).SendString(err.Error())
+	}
+	var blocks goblockly.BlockXml
+	if err := xml.Unmarshal([]byte(xmlBody.Xml), &blocks); err != nil {
+		return c.Status(400).SendString(err.Error())
+	}
+	//fmt.Println(c.Query("xml"))
+	PrintBlocks(blocks.Blocks)
+	//return c.JSON(XMLStruct{Xml: c.Query("xml")})
+	return c.XML(blocks)
 }
 
-func Equal(s1 string, s2 string, p lib.Player, m *map[lib.Player][]lib.Move) bool {
-	switch s1 {
-	case "ROUND":
-		s1 = string(len((*m)[0]))
+func PrintBlocks(blocks []goblockly.Block) {
+	fmt.Println("----------------------------")
+	for _, block := range blocks {
+		fmt.Printf("Type: %s Id: %s\n", block.Type, block.Id)
+		PrintNextBlock(block)
 	}
+}
 
-	switch s2 {
-	case "ROUND":
-		s1 = string(len((*m)[0]))
+func PrintNextBlock(block goblockly.Block) {
+	if block.Next == nil {
+		fmt.Printf("Block %s has no next blocks\n", block.Id)
+	} else {
+		fmt.Printf("Next Of %s : %s\n", block.Id, block.Next.Type)
+		PrintNextBlock(*block.Next)
 	}
-
-	return s1 == s2
 }
