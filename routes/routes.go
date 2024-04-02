@@ -11,7 +11,7 @@ func Init(a **fiber.App) {
 
 	app.Get("/", controllers.Root)
 
-	app.Get("/round", controllers.GetRound)
+	app.Post("/round", controllers.GetRound)
 
 	app.Post("/xml", controllers.XML)
 }
