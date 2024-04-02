@@ -127,9 +127,9 @@ func ParseStrategie(blocks []goblockly.Block) lib.Strategy {
 
 	strategie := func(p lib.Player, m *map[lib.Player][]lib.Move) lib.Move {
 		for _, block := range blocks {
-			if block.Type == "controls_if" {
+			if block.Type == "controls_if" && len(block.Values[0].Blocks) > 0 && len(block.Statements[0].Blocks) > 0 {
 				if IfBlock(block, p, m) {
-					fmt.Println("IF YES")
+					//fmt.Println("IF BLOCK IS CORRECT")
 					if block.Statements[0].Blocks[0].Type == "return_move" {
 						switch BlockIterator(block.Statements[0].Blocks[0], p, m) {
 						case 0:
@@ -138,11 +138,10 @@ func ParseStrategie(blocks []goblockly.Block) lib.Strategy {
 							return lib.Rely
 						}
 					}
-				} else {
-					fmt.Println("IF NOT")
 				}
 			}
-			if block.Type == "return_move" {
+			if block.Type == "return_move" && len(block.Values[0].Blocks) > 0 {
+				//fmt.Println("RETURN BLOCK DETECTED")
 				switch BlockIterator(block, p, m) {
 				case 0:
 					return lib.Betray
@@ -171,7 +170,7 @@ func IfBlock(block goblockly.Block, p lib.Player, m *map[lib.Player][]lib.Move) 
 		results = append(results, false)
 	}
 
-	fmt.Println(results)
+	//fmt.Println(results)
 
 	for _, b := range results {
 		if !b {
@@ -201,10 +200,51 @@ func BlockIterator(block goblockly.Block, p lib.Player, m *map[lib.Player][]lib.
 	// MAKE ALL THE OPTIONS NOT ONLY EQUAL OPERATION
 	////////////////////////////////////////////////////////////
 	if block.Type == "logic_compare" {
-		if results[0] == results[1] {
-			fmt.Println("BOTH SIDES ARE EQUAL")
-			return 1
-		} else {
+		//fmt.Println("LOGIC COMPARE DETECTED")
+		switch block.Fields[0].Value {
+		case "EQ":
+			if results[0] == results[1] {
+				//fmt.Println("BOTH SIDES ARE EQUAL")
+				return 1
+			} else {
+				return 0
+			}
+		case "NEQ":
+			if results[0] != results[1] {
+				//fmt.Println("BOTH SIDES ARE NOT EQUAL")
+				return 1
+			} else {
+				return 0
+			}
+		case "LT":
+			if results[0] < results[1] {
+				//fmt.Println("LEFT SIDE IS LESS THAN RIGHT SIDE")
+				return 1
+			} else {
+				return 0
+			}
+		case "LTE":
+			if results[0] <= results[1] {
+				//fmt.Println("LEFT SIDE IS LESS OR EQUAL THAN RIGHT SIDE")
+				return 1
+			} else {
+				return 0
+			}
+		case "GT":
+			if results[0] > results[1] {
+				//fmt.Println("LEFT SIDE IS GREATER THAN RIGHT SIDE")
+				return 1
+			} else {
+				return 0
+			}
+		case "GTE":
+			if results[0] >= results[1] {
+				//fmt.Println("LEFT SIDE IS GREATER OR EQUAL THAN RIGHT SIDE")
+				return 1
+			} else {
+				return 0
+			}
+		default:
 			return 0
 		}
 	}
