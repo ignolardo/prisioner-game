@@ -47,7 +47,7 @@ const (
 
 type Strategy func(Player, *map[Player][]Move) Move
 
-func Round(s1 Strategy, s2 Strategy, r *map[Player][]Move) (Player, int) {
+func SingleRound(s1 Strategy, s2 Strategy, r *map[Player][]Move, s *map[Player][]int) {
 	move1 := s1(First, r)
 	move2 := s2(Second, r)
 
@@ -56,14 +56,22 @@ func Round(s1 Strategy, s2 Strategy, r *map[Player][]Move) (Player, int) {
 
 	switch {
 	case move1 == Betray && move2 == Rely:
-		return First, 5
+		(*s)[First] = append((*s)[First], 5)
+		(*s)[Second] = append((*s)[Second], 0)
 	case move1 == Rely && move2 == Betray:
-		return Second, 5
+		(*s)[First] = append((*s)[First], 0)
+		(*s)[Second] = append((*s)[Second], 5)
 	case move1 == Betray && move2 == Betray:
-		return Both, 1
+		(*s)[First] = append((*s)[First], 1)
+		(*s)[Second] = append((*s)[Second], 1)
 	case move1 == Rely && move2 == Rely:
-		return Both, 3
-	default:
-		return Both, 0
+		(*s)[First] = append((*s)[First], 3)
+		(*s)[Second] = append((*s)[Second], 3)
+	}
+}
+
+func MultipleRounds(rounds uint, s1 Strategy, s2 Strategy, r *map[Player][]Move, s *map[Player][]int) {
+	for range rounds {
+		SingleRound(s1, s2, r, s)
 	}
 }

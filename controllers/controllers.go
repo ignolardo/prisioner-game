@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"encoding/xml"
-	"fmt"
+	"errors"
 	"prisioner-game/lib"
 	"prisioner-game/strategies"
 	"strconv"
@@ -29,86 +29,53 @@ func Root(c *fiber.Ctx) error {
 	return c.SendString("Root")
 }
 
-func GetRound(c *fiber.Ctx) error {
-	/* var body RoundBody
-	err := json.Unmarshal(c.Body(), &body)
-	if err != nil {
-		return fiber.ErrBadRequest
-	}
-
-	moves_record := make(map[lib.Player][]lib.Move)
-	scores_record := make(map[lib.Player][]int)
-
-	for range body.Size {
-		p, s := lib.Round(strategies.Random, strategies.TitForTat, &moves_record)
-
-		if p == lib.Both {
-			scores_record[lib.First] = append(scores_record[lib.First], s)
-			scores_record[lib.Second] = append(scores_record[lib.Second], s)
-		} else {
-			scores_record[p] = append(scores_record[p], s)
-			scores_record[p.Opposite()] = append(scores_record[p.Opposite()], 0)
-		}
-	}
-
-	response := RoundResult{moves_record, scores_record}
-
-	return c.JSON(response) */
-
+func GetRounds(c *fiber.Ctx) error {
+	// BODY STRUCT VARIABLE
 	var body RoundBody
+
+	// PARSE BODY REQUEST INTO BODY VARIABLE
 	if err := c.BodyParser(&body); err != nil {
 		c.Status(400).SendString(err.Error())
 	}
 
-	var blocks goblockly.BlockXml
-	if err := xml.Unmarshal([]byte(body.Xml), &blocks); err != nil {
+	// BLOCKS STRUCT VARIABLE
+	blockXml, err := ParseXML(body.Xml)
+
+	if err != nil {
 		return c.Status(400).SendString(err.Error())
 	}
-	var strategie lib.Strategy
 
-	if len(blocks.Blocks) == 0 {
-		strategie = strategies.Random
-	} else {
-		strategie = ParseStrategie(GetBlocks(blocks.Blocks[0]))
-	}
+	// PARSE BLOCKS INTO STRATEGIE
+	strategie := ParseStrategie(blockXml.Blocks)
 
+	// PLAYERS MOVES RECORD
 	moves_record := make(map[lib.Player][]lib.Move)
+
+	// PLAYERS SCORES
 	scores_record := make(map[lib.Player][]int)
 
-	for range body.Size {
-		p, s := lib.Round(strategie, strategies.Random, &moves_record)
+	// GENERATE THE REQUESTED ROUNDS
+	lib.MultipleRounds(body.Size, strategie, strategies.Random, &moves_record, &scores_record)
 
-		if p == lib.Both {
-			scores_record[lib.First] = append(scores_record[lib.First], s)
-			scores_record[lib.Second] = append(scores_record[lib.Second], s)
-		} else {
-			scores_record[p] = append(scores_record[p], s)
-			scores_record[p.Opposite()] = append(scores_record[p.Opposite()], 0)
-		}
-	}
-
+	// RESPONSE VARIABLE
 	response := RoundResult{moves_record, scores_record}
 
+	// RETURNING JSON RESPONSE
 	return c.JSON(response)
 
 }
 
-func XML(c *fiber.Ctx) error {
-	var xmlBody XMLStruct
-	if err := c.BodyParser(&xmlBody); err != nil {
-		c.Status(400).SendString(err.Error())
-	}
-
+// XML PARSER
+func ParseXML(strXml string) (goblockly.BlockXml, error) {
+	// BLOCKS STRUCT VARIABLE
 	var blocks goblockly.BlockXml
-	if err := xml.Unmarshal([]byte(xmlBody.Xml), &blocks); err != nil {
-		return c.Status(400).SendString(err.Error())
+
+	// PARSE XML INTO BLOCKS VARIABLE
+	if err := xml.Unmarshal([]byte(strXml), &blocks); err != nil {
+		return goblockly.BlockXml{}, errors.New("cannot parse xml")
 	}
 
-	PrintBlocks(blocks.Blocks)
-
-	//strategie := ParseStrategie(blocks.Blocks)
-
-	return c.XML(blocks)
+	return blocks, nil
 }
 
 func GetBlocks(firstBlock goblockly.Block) []goblockly.Block {
@@ -124,6 +91,12 @@ func GetBlocks(firstBlock goblockly.Block) []goblockly.Block {
 }
 
 func ParseStrategie(blocks []goblockly.Block) lib.Strategy {
+
+	if len(blocks) == 0 {
+		return strategies.Random
+	}
+
+	blocks = GetBlocks(blocks[0])
 
 	strategie := func(p lib.Player, m *map[lib.Player][]lib.Move) lib.Move {
 		for _, block := range blocks {
@@ -169,8 +142,6 @@ func IfBlock(block goblockly.Block, p lib.Player, m *map[lib.Player][]lib.Move) 
 	case 0:
 		results = append(results, false)
 	}
-
-	//fmt.Println(results)
 
 	for _, b := range results {
 		if !b {
@@ -277,17 +248,6 @@ func BlockIterator(block goblockly.Block, p lib.Player, m *map[lib.Player][]lib.
 	return results[0]
 }
 
-func LogicCompare(block goblockly.Block) bool {
-	/* a_value := block.Values[0].Blocks
-	b_value := block.Values[0].Blocks
-
-	for _,a_block := range a_value {
-
-	} */
-
-	return true
-}
-
 func BasicBlocks(block goblockly.Block, p lib.Player, m *map[lib.Player][]lib.Move) int {
 	if block.Type == "round" {
 		return len((*m)[0])
@@ -306,21 +266,4 @@ func BasicBlocks(block goblockly.Block, p lib.Player, m *map[lib.Player][]lib.Mo
 		}
 	}
 	return 0
-}
-
-func PrintBlocks(blocks []goblockly.Block) {
-	fmt.Println("----------------------------")
-	for _, block := range blocks {
-		fmt.Printf("Type: %s Id: %s\n", block.Type, block.Id)
-		PrintNextBlock(block)
-	}
-}
-
-func PrintNextBlock(block goblockly.Block) {
-	if block.Next == nil {
-		fmt.Printf("Block %s has no next blocks\n", block.Id)
-	} else {
-		fmt.Printf("Next Of %s : %s\n", block.Id, block.Next.Type)
-		PrintNextBlock(*block.Next)
-	}
 }
