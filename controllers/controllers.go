@@ -99,29 +99,13 @@ func ParseStrategie(blocks []goblockly.Block) lib.Strategy {
 	blocks = GetBlocks(blocks[0])
 
 	strategie := func(p lib.Player, m *map[lib.Player][]lib.Move) lib.Move {
+
 		for _, block := range blocks {
-			if block.Type == "controls_if" && len(block.Values[0].Blocks) > 0 && len(block.Statements[0].Blocks) > 0 {
-				if IfBlock(block, p, m) {
-					//fmt.Println("IF BLOCK IS CORRECT")
-					if block.Statements[0].Blocks[0].Type == "return_move" {
-						switch BlockIterator(block.Statements[0].Blocks[0], p, m) {
-						case 0:
-							return lib.Betray
-						case 1:
-							return lib.Rely
-						}
-					}
-				}
+			result := BlockIterator(block, p, m)
+			if result == -1 {
+				continue
 			}
-			if block.Type == "return_move" && len(block.Values[0].Blocks) > 0 {
-				//fmt.Println("RETURN BLOCK DETECTED")
-				switch BlockIterator(block, p, m) {
-				case 0:
-					return lib.Betray
-				case 1:
-					return lib.Rely
-				}
-			}
+			return lib.Move(result)
 		}
 
 		return lib.Rely
@@ -132,120 +116,40 @@ func ParseStrategie(blocks []goblockly.Block) lib.Strategy {
 
 }
 
-func IfBlock(block goblockly.Block, p lib.Player, m *map[lib.Player][]lib.Move) bool {
-	value_blocks := block.Values[0].Blocks
-	results := []bool{}
-
-	switch BlockIterator(value_blocks[0], p, m) {
-	case 1:
-		results = append(results, true)
-	case 0:
-		results = append(results, false)
-	}
-
-	for _, b := range results {
-		if !b {
-			return false
-		}
-	}
-
-	return true
-
-}
-
 func BlockIterator(block goblockly.Block, p lib.Player, m *map[lib.Player][]lib.Move) int {
 	values := block.Values
 
-	if len(values) == 0 {
-		return BasicBlocks(block, p, m)
-	}
-
 	results := []int{}
+
 	for _, value := range values {
 		for _, block := range value.Blocks {
 			results = append(results, BlockIterator(block, p, m))
 		}
 	}
 
-	////////////////////////////////////////////////////////////
-	// MAKE ALL THE OPTIONS NOT ONLY EQUAL OPERATION
-	////////////////////////////////////////////////////////////
-	if block.Type == "logic_compare" {
-		//fmt.Println("LOGIC COMPARE DETECTED")
-		switch block.Fields[0].Value {
-		case "EQ":
-			if results[0] == results[1] {
-				//fmt.Println("BOTH SIDES ARE EQUAL")
-				return 1
-			} else {
-				return 0
-			}
-		case "NEQ":
-			if results[0] != results[1] {
-				//fmt.Println("BOTH SIDES ARE NOT EQUAL")
-				return 1
-			} else {
-				return 0
-			}
-		case "LT":
-			if results[0] < results[1] {
-				//fmt.Println("LEFT SIDE IS LESS THAN RIGHT SIDE")
-				return 1
-			} else {
-				return 0
-			}
-		case "LTE":
-			if results[0] <= results[1] {
-				//fmt.Println("LEFT SIDE IS LESS OR EQUAL THAN RIGHT SIDE")
-				return 1
-			} else {
-				return 0
-			}
-		case "GT":
-			if results[0] > results[1] {
-				//fmt.Println("LEFT SIDE IS GREATER THAN RIGHT SIDE")
-				return 1
-			} else {
-				return 0
-			}
-		case "GTE":
-			if results[0] >= results[1] {
-				//fmt.Println("LEFT SIDE IS GREATER OR EQUAL THAN RIGHT SIDE")
-				return 1
-			} else {
-				return 0
-			}
-		default:
-			return 0
-		}
+	switch block.Type {
+	case "round":
+		return RoundBlock(m)
+	case "betray":
+		return 0
+	case "rely":
+		return 1
+	case "math_number":
+		return MathNumberBlock(block)
+	case "plmoves":
+		return PlayerMovesBlock(p, m, results)
+	case "opmoves":
+		return OpponentMovesBlock(p, m, results)
+	case "operations":
+		return OperationBlock(block, results)
+	case "logic_compare":
+		return LogicCompareBlock(block, results)
+	case "return_move":
+		return ReturnMoveBlock(results)
+	case "controls_if":
+		return IfBlock(block, p, m, results)
 	}
-
-	if block.Type == "operations" {
-		switch block.Fields[0].Value {
-		case "sum":
-			return results[0] + results[1]
-		case "substraction":
-			return results[0] - results[1]
-		case "multiplication":
-			return results[0] * results[1]
-		case "division":
-			return results[0] / results[1]
-		}
-	}
-
-	if block.Type == "return_move" {
-		return results[0]
-	}
-
-	if block.Type == "plmoves" {
-		return int((*m)[p][results[0]])
-	}
-
-	if block.Type == "opmoves" {
-		return int((*m)[p.Opposite()][results[0]])
-	}
-
-	return results[0]
+	return -1
 }
 
 func BasicBlocks(block goblockly.Block, p lib.Player, m *map[lib.Player][]lib.Move) int {
@@ -266,4 +170,108 @@ func BasicBlocks(block goblockly.Block, p lib.Player, m *map[lib.Player][]lib.Mo
 		}
 	}
 	return 0
+}
+
+func RoundBlock(m *map[lib.Player][]lib.Move) int {
+	return len((*m)[0])
+}
+
+func MathNumberBlock(block goblockly.Block) int {
+	if value, err := strconv.Atoi(block.Fields[0].Value); err == nil {
+		return value
+	}
+	return 0
+}
+
+func LogicCompareBlock(block goblockly.Block, r []int) int {
+	r0 := (r)[0]
+	r1 := (r)[1]
+	switch block.Fields[0].Value {
+	case "EQ":
+		if r0 == r1 {
+			return 1
+		} else {
+			return 0
+		}
+	case "NEQ":
+		if r0 != r1 {
+			return 1
+		} else {
+			return 0
+		}
+	case "LT":
+		if r0 < r1 {
+			return 1
+		} else {
+			return 0
+		}
+	case "LTE":
+		if r0 <= r1 {
+			return 1
+		} else {
+			return 0
+		}
+	case "GT":
+		if r0 > r1 {
+			return 1
+		} else {
+			return 0
+		}
+	case "GTE":
+		if r0 >= r1 {
+			return 1
+		} else {
+			return 0
+		}
+	default:
+		return 0
+	}
+}
+
+func OperationBlock(block goblockly.Block, r []int) int {
+	r0 := (r)[0]
+	r1 := (r)[1]
+
+	if r1 != 0 {
+		switch block.Fields[0].Value {
+		case "sum":
+			return r0 + r1
+		case "substraction":
+			return r0 - r1
+		case "multiplication":
+			return r0 * r1
+		case "division":
+			return r0 / r1
+		}
+	}
+
+	return 0
+}
+
+func PlayerMovesBlock(p lib.Player, m *map[lib.Player][]lib.Move, r []int) int {
+	return int((*m)[p][(r)[0]])
+}
+
+func OpponentMovesBlock(p lib.Player, m *map[lib.Player][]lib.Move, r []int) int {
+	return int((*m)[p.Opposite()][(r)[0]])
+}
+
+func ReturnMoveBlock(r []int) int {
+	if len((r)) > 0 {
+		return (r)[0]
+	}
+	return -1
+}
+
+func IfBlock(block goblockly.Block, p lib.Player, m *map[lib.Player][]lib.Move, r []int) int {
+	state := (r)[0]
+	statements := block.Statements[0].Blocks
+
+	if state == 1 {
+		if statements[0].Type == "return_move" {
+			return BlockIterator(statements[0], p, m)
+		}
+	}
+
+	return -1
 }
